@@ -4,5 +4,6 @@ with (import <nixpkgs> {});
     buildInputs = [
       msr-tools
       gcc
+      linuxPackages.kernel.dev
     ];
   }

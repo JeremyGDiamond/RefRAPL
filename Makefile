@@ -6,6 +6,7 @@ ref: RefRAPL.c dir
 
 dir:
 	mkdir -p build
+	mkdir -p data
 
 clean:
 	rm -f build/refRAPL
