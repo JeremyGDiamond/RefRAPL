@@ -12,6 +12,32 @@
     #include <sys/time.h>
     #include <fcntl.h>
 
+    //pid must be global to use in sig_int_hand
+    static volatile pid_t pid = 0;
+    void sig_int_hand(int sig){
+        if (sig == SIGINT){
+            if (!pid){
+                printf("INFO: End Samples\n");
+                exit(0);
+            }
+            else{
+                // wait for child, unload mod
+                usleep(1000*100);
+                int sysRet = system("rmmod msr");
+
+                if (sysRet == 0) {
+                    printf("INFO: MSR module unloaded\n");
+                } 
+                
+                else {
+                    printf("ERROR: Failed to unload MSR module\n");
+                }
+
+            }
+        }
+    }
+
+
     int main(int argc, char** argv) {
         
         /*
@@ -30,6 +56,9 @@
         term the measuemnt process
         */
 
+        // add sig_int_handel for process shutdown
+        signal(SIGINT, sig_int_hand);
+
         // checking env, args and turning on msr kernel mod, extra block to fold code away
         {   
         // check arg number and len
@@ -38,13 +67,14 @@
             return -1;
         }
 
-        if (strlen(argv[1]) > 2048){
-            printf("ERROR: process name too long\n");
+        // data files add 8 chars, 2048 - 8 - 1 for the null at the end of the string
+        if (strlen(argv[1]) > 2039){
+            printf("ERROR: process name too long: max 2039\n");
             return -1;
         }
 
-        if (strlen(argv[2]) > 2048){
-            printf("ERROR: file name too long\n");
+        if (strlen(argv[2]) > 2039){
+            printf("ERROR: file name too long: max 2039\n");
             return -1;
         }
 
@@ -76,25 +106,45 @@
         }
         
         // fork process
-        pid_t pid = fork();
+        pid = fork();
 
         if (pid < 0){
             printf("ERROR: Failed to fork process c1\n");
                 return -1;
         }
 
-        // child process 1: take a sample every milisecond, check if the process is done every 100 samples
+        // child process 1: take a sample every milisecond, write to file every 100 samples
+        // we use 5 sepserate files and buffers to keep tings fast in this loop
         else if (pid == 0){
             
+            //make the fnames
+            char pkgname[2048];
+            char pp0name[2048];
+            char pp1name[2048];
+            char drmname[2048];
+            char timname[2048];
+
+            snprintf(pkgname, 2048, "%s%s.data", argv[2], "pkg");
+            snprintf(pp0name, 2048, "%s%s.data", argv[2], "pp0");
+            snprintf(pp1name, 2048, "%s%s.data", argv[2], "pp1");
+            snprintf(drmname, 2048, "%s%s.data", argv[2], "drm");
+            snprintf(timname, 2048, "%s%s.data", argv[2], "tim");
             
             printf("INFO: child start\n");
-            // open the file and allocate data
+            // open the files and allocate data
             char msr_file[64] = "/dev/cpu/0/msr";
-            int fd = open(msr_file, O_RDONLY);
+            int fdmsr = open(msr_file, O_RDONLY);
+            FILE *fpkg = fopen(pkgname, "w");
+            FILE *fpp0 = fopen(pp0name, "w");
+            FILE *fpp1 = fopen(pp1name, "w");
+            FILE *fdrm = fopen(drmname, "w");
+            FILE *fts = fopen(timname, "w");
+            
+            
             // we assume cpu0 exists, and supports msrs there should be error handeling here. See msr-tools/rdmsr.c line 218
             // time stamp in microseconds
-            struct timeval mts;
-            // RAPL mes reg are 32 bit values as can be found in the intel dev manuel page 3631
+            struct timeval mts[100];
+            // RAPL mes reg are 64 bit values as can be found in the intel dev manuel page 3631
             // msr number assumed to match dev's cpu for now TODO: make this an input arg or a lookup by cpuid
             u_int32_t msr_pkg_num = 0x611;
             u_int32_t msr_pp0_num = 0x639;
@@ -106,27 +156,41 @@
             
 
             while(1){
-                printf("INFO: child takes mesurment\n");
+                // printf("INFO: child takes mesurment\n");
                 // read the msrs and add them to a buffer every milisecond in a 100 sample for loop
                 // we assume the read works without error handleing. See msr-tools/rdmsr.c line 235
                 
                 
                 for(size_t i = 0; i < 100; ++i){
-                    placeholder = pread(fd, &MSR_PKG_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pkg_num);
-                    placeholder = pread(fd, &MSR_PP0_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pp0_num);
-                    placeholder = pread(fd, &MSR_PP1_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pp1_num);
-                    placeholder = pread(fd, &MSR_DRAM_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_dram_num);
-                    gettimeofday(&mts, NULL);
-                    // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, MSR_PKG_ENERGY_STATUS[i], MSR_PP0_ENERGY_STATUS[i], 
+                    placeholder = pread(fdmsr, &MSR_PKG_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pkg_num);
+                    placeholder = pread(fdmsr, &MSR_PP0_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pp0_num);
+                    placeholder = pread(fdmsr, &MSR_PP1_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pp1_num);
+                    placeholder = pread(fdmsr, &MSR_DRAM_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_dram_num);
+                    gettimeofday(&mts[i], NULL);
+                    
+                    //TODO: ifdef this print
+                    // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts[i].tv_sec * 1000000) + mts[i].tv_usec, MSR_PKG_ENERGY_STATUS[i], MSR_PP0_ENERGY_STATUS[i], 
                     //         MSR_PP1_ENERGY_STATUS[i], MSR_DRAM_ENERGY_STATUS[i]);
+                    
                     usleep(1000);
                 }
-                printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, MSR_PKG_ENERGY_STATUS[99], MSR_PP0_ENERGY_STATUS[99], 
-                            MSR_PP1_ENERGY_STATUS[99], MSR_DRAM_ENERGY_STATUS[99]);
+                // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, MSR_PKG_ENERGY_STATUS[99], MSR_PP0_ENERGY_STATUS[99], 
+                //             MSR_PP1_ENERGY_STATUS[99], MSR_DRAM_ENERGY_STATUS[99]);
                 // append buffer to file
+                fwrite(MSR_PKG_ENERGY_STATUS, sizeof(MSR_PKG_ENERGY_STATUS[0]), 100, fpkg);
+                fwrite(MSR_PP0_ENERGY_STATUS, sizeof(MSR_PP0_ENERGY_STATUS[0]), 100, fpp0);
+                fwrite(MSR_PP1_ENERGY_STATUS, sizeof(MSR_PP1_ENERGY_STATUS[0]), 100, fpp1);
+                fwrite(MSR_DRAM_ENERGY_STATUS, sizeof(MSR_DRAM_ENERGY_STATUS[0]), 100, fdrm);
+                fwrite(mts, sizeof(mts[0]), 100, fts);
             }
             placeholder = 0;
-            // COOP sigint handeler closes the file
+            
+            //close the files
+            fclose(fpkg);
+            fclose(fpp0);
+            fclose(fpp1);
+            fclose(fdrm);
+            fclose(fts);
 
             exit(placeholder);
             
@@ -134,79 +198,56 @@
 
         
         // parent process: wait 1 sec and then fork again run the target process, only user privs
-        // when child 2 done sigint to child 1
+        // when process undr test is done sigint to child 1
         else{
-            sleep(3);
-
-            // fork process
-            pid_t pidc2 = fork();
-            int status = 0;
-
-            if (pidc2 < 0){
-                printf("ERROR: Failed to fork process c1\n");
-                    return -1;
-            }
-
-            // child process 2: setuid and run a system command
-            else if (pidc2 == 0){
-                printf("INFO: run child 2\n");
-                // time_t t1,t2,t3,t4 = 0;
-
-                struct timeval t1,t2,t3,t4;
-                int placeholder = 0;
-                
-                placeholder = setuid(1000);
-                // take ts for pre run overhead
-                gettimeofday(&t1, NULL);
-                // sleep 1 sec
-                usleep(1000*1000);
-                
-                // record time stamp start
-                gettimeofday(&t2, NULL);
-                placeholder = system(argv[1]);
-                gettimeofday(&t3, NULL);
-                // record time stamp end
-                // sleep 1 sec
-                usleep(1000*1000);
-                // take ts for post run overhead
-                gettimeofday(&t4, NULL);
-
-
-
-                printf("INFO:child 2 ret: %u t1: %ld, t2: %ld, t3: %ld, t4: %ld\n", placeholder, 
-                        (t1.tv_sec * 1000000) + t1.tv_usec, 
-                        (t2.tv_sec * 1000000) + t2.tv_usec, 
-                        (t3.tv_sec * 1000000) + t3.tv_usec, 
-                        (t4.tv_sec * 1000000) + t4.tv_usec);
-                
-                // COOP write to file
-
-
-            }
-
-            else{
-                waitpid(pidc2, &status, 0);
-
-                usleep(1000*100);
-
-                kill(pid, SIGINT);
-
-                // unload kernel mod COOP: do this on sigint
-
-               
-
-                int sysRet = system("rmmod msr");
-
-                if (sysRet == 0) {
-                    printf("INFO: MSR module unloaded\n");
-                } 
-                
-                else {
-                    printf("ERROR: Failed to unload MSR module\n");
-                    return -1;
-                }
-            }
+            usleep(1000 * 1000);
+        
+            printf("INFO: run process\n");
             
+            struct timeval t1,t2,t3,t4;
+            int placeholder = 0;
+            
+            // placeholder = setuid(1000);
+            // take ts for pre run overhead
+            gettimeofday(&t1, NULL);
+            // sleep 1 sec
+            usleep(1000*1000);
+            // record time stamp start
+            gettimeofday(&t2, NULL);
+            placeholder = system(argv[1]);
+            gettimeofday(&t3, NULL);
+            // record time stamp end
+            // sleep 1 sec
+            usleep(1000*1000);
+            // take ts for post run overhead
+            gettimeofday(&t4, NULL);
+
+
+
+            printf("INFO: process ret: %u t1: %ld, t2: %ld, t3: %ld, t4: %ld\n", placeholder, 
+                    (t1.tv_sec * 1000000) + t1.tv_usec, 
+                    (t2.tv_sec * 1000000) + t2.tv_usec, 
+                    (t3.tv_sec * 1000000) + t3.tv_usec, 
+                    (t4.tv_sec * 1000000) + t4.tv_usec);
+            
+            // write to file
+
+            char ptsname[2048];
+            snprintf(ptsname, 2048, "%s%s.data", argv[2], "pts");
+            FILE *fprocts = fopen(ptsname, "w");
+            
+            fwrite(&t1, sizeof(t1), 1, fprocts);
+            fwrite(&t2, sizeof(t2), 1, fprocts);
+            fwrite(&t3, sizeof(t3), 1, fprocts);
+            fwrite(&t4, sizeof(t4), 1, fprocts);
+            fclose(fprocts);
+
+            usleep(1000*100);
+
+            kill(pid, SIGINT);
+
+            // shutdown procedure, call the sigint function directly
+            sig_int_hand(SIGINT);
             
         }
         
