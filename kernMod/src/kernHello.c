@@ -3,7 +3,9 @@
 #include <linux/uaccess.h>
 #include <linux/fs.h>
 #include <linux/proc_fs.h>
-#include <linux/delay.h> 
+#include <linux/delay.h>
+#include <linux/timer.h>
+#include <linux/jiffies.h> 
 
 // Module metadata
 MODULE_AUTHOR("Jeremy G Diamond");
@@ -18,22 +20,23 @@ static ssize_t custom_read(struct file* file, char __user* user_buffer, size_t c
     int greeting_length = strlen(greeting); 
     if (*offset > 0)
         return 0; 
-    
-    copy_to_user(user_buffer, greeting, greeting_length);
+
+    long cpRes = copy_to_user(user_buffer, greeting, greeting_length);
+    if(cpRes != 0){
+        printk(KERN_INFO "copy_to_user failed !!!");
+    }
     *offset = greeting_length; return greeting_length;
 }
 
-static struct file_operations fops =
-{
- .owner = THIS_MODULE,
- .read = custom_read
+static struct proc_ops pops = {
+    .proc_read = custom_read
 };
+
 
 // Custom init and exit methods
 static int __init custom_init(void) {
-    proc_entry = proc_create("helloworlddriver", 0666, NULL, &fops);
+    proc_entry = proc_create("helloworlddriver", 0666, NULL, &pops);
     printk(KERN_INFO "Hello world driver loaded.");
-    // func(); // THIS IS FUCKED DO NOT DO THIS!!!!!!
     return 0;
 }
 
