@@ -151,7 +151,7 @@
             u_int32_t msr_pp1_num = 0x641;
             u_int32_t msr_dram_num = 0x619;
             // buffers use msr names
-            u_int64_t MSR_PKG_ENERGY_STATUS[100], MSR_PP0_ENERGY_STATUS[100], MSR_PP1_ENERGY_STATUS[100], MSR_DRAM_ENERGY_STATUS[100];
+            u_int64_t msr_pkg_energy_status[100], msr_pp0_energy_status[100], msr_pp1_energy_status[100], msr_dram_energy_status[100];
             int placeholder = 0;
             
 
@@ -162,25 +162,25 @@
                 
                 
                 for(size_t i = 0; i < 100; ++i){
-                    placeholder = pread(fdmsr, &MSR_PKG_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pkg_num);
-                    placeholder = pread(fdmsr, &MSR_PP0_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pp0_num);
-                    placeholder = pread(fdmsr, &MSR_PP1_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_pp1_num);
-                    placeholder = pread(fdmsr, &MSR_DRAM_ENERGY_STATUS[i], sizeof MSR_PKG_ENERGY_STATUS[i], msr_dram_num);
+                    placeholder = pread(fdmsr, &msr_pkg_energy_status[i], sizeof msr_pkg_energy_status[i], msr_pkg_num);
+                    placeholder = pread(fdmsr, &msr_pp0_energy_status[i], sizeof msr_pp0_energy_status[i], msr_pp0_num);
+                    placeholder = pread(fdmsr, &msr_pp1_energy_status[i], sizeof msr_pp1_energy_status[i], msr_pp1_num);
+                    placeholder = pread(fdmsr, &msr_dram_energy_status[i], sizeof msr_dram_energy_status[i], msr_dram_num);
                     gettimeofday(&mts[i], NULL);
                     
                     //TODO: ifdef this print
-                    // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts[i].tv_sec * 1000000) + mts[i].tv_usec, MSR_PKG_ENERGY_STATUS[i], MSR_PP0_ENERGY_STATUS[i], 
-                    //         MSR_PP1_ENERGY_STATUS[i], MSR_DRAM_ENERGY_STATUS[i]);
+                    // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts[i].tv_sec * 1000000) + mts[i].tv_usec, msr_pkg_energy_status[i], msr_pp0_energy_status[i], 
+                    //         msr_pp1_energy_status[i], msr_dram_energy_status[i]);
                     
                     usleep(1000);
                 }
-                // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, MSR_PKG_ENERGY_STATUS[99], MSR_PP0_ENERGY_STATUS[99], 
-                //             MSR_PP1_ENERGY_STATUS[99], MSR_DRAM_ENERGY_STATUS[99]);
+                // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, msr_pkg_energy_status[99], msr_pp0_energy_status[99], 
+                //             msr_pp1_energy_status[99], msr_dram_energy_status[99]);
                 // append buffer to file
-                fwrite(MSR_PKG_ENERGY_STATUS, sizeof(MSR_PKG_ENERGY_STATUS[0]), 100, fpkg);
-                fwrite(MSR_PP0_ENERGY_STATUS, sizeof(MSR_PP0_ENERGY_STATUS[0]), 100, fpp0);
-                fwrite(MSR_PP1_ENERGY_STATUS, sizeof(MSR_PP1_ENERGY_STATUS[0]), 100, fpp1);
-                fwrite(MSR_DRAM_ENERGY_STATUS, sizeof(MSR_DRAM_ENERGY_STATUS[0]), 100, fdrm);
+                fwrite(msr_pkg_energy_status, sizeof(msr_pkg_energy_status[0]), 100, fpkg);
+                fwrite(msr_pp0_energy_status, sizeof(msr_pp0_energy_status[0]), 100, fpp0);
+                fwrite(msr_pp1_energy_status, sizeof(msr_pp1_energy_status[0]), 100, fpp1);
+                fwrite(msr_dram_energy_status, sizeof(msr_dram_energy_status[0]), 100, fdrm);
                 fwrite(mts, sizeof(mts[0]), 100, fts);
             }
             placeholder = 0;

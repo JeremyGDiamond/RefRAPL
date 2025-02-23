@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11
 
-ref: RefRAPL.c dir
+ref: dir
 	$(CC) $(CFLAGS) -o build/refRAPL refRAPL.c
 
 dir:
