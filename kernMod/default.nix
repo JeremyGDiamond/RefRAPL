@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.stdenv.mkDerivation rec {
-  pname = "kernHello";
+  pname = "rapl_ref_mod";
   version = "0.1";
 
   src = ./src;
@@ -15,11 +15,11 @@ pkgs.stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out/lib/modules/${pkgs.linuxPackages.kernel.modDirVersion}/extra
-    cp kernHello.ko $out/lib/modules/${pkgs.linuxPackages.kernel.modDirVersion}/extra/
+    cp rapl_ref_mod.ko $out/lib/modules/${pkgs.linuxPackages.kernel.modDirVersion}/extra/
   '';
 
   meta = {
-    description = "Hello World Kernel Module";
+    description = "RAPL Measurement Ref Kernel Module";
     license = pkgs.lib.licenses.gpl2;
   };
 }
