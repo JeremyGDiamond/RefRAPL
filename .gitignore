@@ -7,3 +7,5 @@ data/*
 .vscode
 
 /kernMod/result*
+
+resources/

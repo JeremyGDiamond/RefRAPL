@@ -11,7 +11,7 @@
 #include <asm/msr.h>
 
 /*
-    Kernel Mod that sends the 2000 most recent rapl vlaues to a proc file
+    Kernel Mod that sends the 2000 most recent rapl values to a proc file
     based on the tutorial here https://medium.com/dvt-engineering/how-to-write-your-first-linux-kernel-module-cf284408beeb
     see timer docs https://www.kernel.org/doc/html/next/timers/delay_sleep_functions.html
 */
