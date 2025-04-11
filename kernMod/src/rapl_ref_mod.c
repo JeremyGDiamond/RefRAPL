@@ -19,7 +19,7 @@
 //timer wait def
 #define MS_TO_WAIT 1
 //size of output arr
-#define MEAS_NUM 2000
+#define MEAS_NUM 2048
 //buffer witten to the proc system
 #define OUT_BUFF_SIZE 87 * (MEAS_NUM + 1)
 
@@ -94,7 +94,8 @@ void timer_callback(struct timer_list *timer){
     // measurements[mindex].pp0, measurements[mindex].errorpp0, measurements[mindex].pp1, 
     // measurements[mindex].errorpp1, measurements[mindex].dram, measurements[mindex].errordram);
     
-    mindex = (mindex + 1) % 2000;
+    // use bitwise and to mask all bits above array size
+    mindex = (mindex + 1) & (MEAS_NUM - 1);
     // use old_jiffies to account for time to read msr
     mod_timer(timer, old_jiffies + msecs_to_jiffies(MS_TO_WAIT));
 }
