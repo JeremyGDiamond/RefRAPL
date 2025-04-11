@@ -50,37 +50,54 @@ MODULE_AUTHOR("Jeremy G Diamond");
 MODULE_DESCRIPTION("rapl_ref_mod");
 MODULE_LICENSE("GPL");
 
+// allocted here to avoid repated allocations on stack frames
+char out_buff[OUT_BUFF_SIZE];
+
 static struct proc_dir_entry* proc_entry;
 static ssize_t custom_read(struct file* file, char __user* user_buffer, size_t count, loff_t* offset)
 {
     printk(KERN_INFO "printing meas");
-    
-    // format string method
-    // // header line: len = 24
-    // // "ts, pkg, pp0, pp1, dram\n"
-    // // example line: len = 87: using hex to save space
-    // // char *ex = "0xffffffff,0xffffffffffffffff,0xffffffffffffffff,0xffffffffffffffff,0xffffffffffffffff\n"  
+    // header line: len = 24
+    // "ts, pkg, pp0, pp1, dram\n"
+    // example line: len = 87: using hex to save space
+    // char *ex = "0xffffffff,0xffffffffffffffff,0xffffffffffffffff,0xffffffffffffffff,0xffffffffffffffff\n"  
 
-    // snprintf(out_buff, 25, "ts, pkg, pp0, pp1, dram\n");
-    // int place = 24;
+    snprintf(out_buff, 25, "ts, pkg, pp0, pp1, dram\n");
+    int place = 24;
 
-    // for(int i = 0; i < MEAS_NUM; ++i){
-    //     place += snprintf(out_buff + place, 87, "%llx,%llx,%llx,%llx,%llx\n", measurements[i].ms_timestamp,measurements[i].pkg,measurements[i].pp0,measurements[i].pp1,measurements[i].dram);
-    // }
-    // int mess_length = strlen(out_buff); 
-    // if (*offset > 0)
-    //     return 0; 
+    for(int i = 0; i < MEAS_NUM; ++i){
+        place += snprintf(out_buff + place, 87, "%llx,%llx,%llx,%llx,%llx\n", measurements[i].ms_timestamp,measurements[i].pkg,measurements[i].pp0,measurements[i].pp1,measurements[i].dram);
+    }
+    int mess_length = strlen(out_buff); 
+    if (*offset > 0)
+        return 0; 
+
+    long cpRes = copy_to_user(user_buffer, out_buff, mess_length);
+    if(cpRes != 0){
+        printk(KERN_INFO "print of meas failed");
+    }
+    *offset = mess_length; return mess_length;
+}
+
+static struct proc_ops pops = {
+    .proc_read = custom_read
+};
+
+static struct proc_dir_entry* proc_entry1;
+static ssize_t custom_read1(struct file* file, char __user* user_buffer, size_t count, loff_t* offset)
+{
+    printk(KERN_INFO "bin dump meas");
 
     long cpRes = copy_to_user(user_buffer, measurements, MES_SIZE);
     if(cpRes != 0){
-        printk(KERN_INFO "print of meas failed");
+        printk(KERN_INFO "dump of meas failed");
     }
     *offset = MES_SIZE; 
     return MES_SIZE;
 }
 
-static struct proc_ops pops = {
-    .proc_read = custom_read
+static struct proc_ops pops1 = {
+    .proc_read = custom_read1
 };
 
 //hr timer
@@ -115,8 +132,7 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer)
 // Custom init and exit methods
 static int __init custom_init(void) {
     proc_entry = proc_create("rapl_ref", 0666, NULL, &pops);
-    // timer_setup(&sampler, timer_callback, 0);
-    // mod_timer(&sampler, jiffies + msecs_to_jiffies(MS_TO_WAIT));
+    proc_entry1 = proc_create("rapl_ref_dump", 0666, NULL, &pops1);
 
     interval = ktime_set(0, 1e6); // 1ms = 1,000,000 ns
     hrtimer_init(&sampler, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
@@ -129,7 +145,10 @@ static int __init custom_init(void) {
 
 static void __exit custom_exit(void) {
     printk(KERN_INFO "rapl_ref_mod exit");
+    
     proc_remove(proc_entry);
+    proc_remove(proc_entry1);
+    
     hrtimer_cancel(&sampler);
     // del_timer(&sampler);
 }

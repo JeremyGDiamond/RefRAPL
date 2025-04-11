@@ -47,8 +47,8 @@
         */
 
         /*
-        check if we have sudo priv
         check the input args
+        check if we have sudo priv
         check if the kernel mod is loaded
         start measurments every milisecond in another process
         launch another program
@@ -114,7 +114,7 @@
         }
 
         // child process 1: take a sample every milisecond, write to file every 100 samples
-        // we use 5 sepserate files and buffers to keep tings fast in this loop
+        // we use 5 sepserate files and buffers to keep things fast in this loop
         else if (pid == 0){
             
             //make the fnames
