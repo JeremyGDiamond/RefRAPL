@@ -3,6 +3,7 @@ CFLAGS = -Wall -Wextra -std=c11
 
 ref: dir
 	$(CC) $(CFLAGS) -o build/refRAPL refRAPL.c
+	$(CC) $(CFLAGS) -o build/useModRefRapl seModRefRAPL.c
 
 dir:
 	mkdir -p build
@@ -10,3 +11,4 @@ dir:
 
 clean:
 	rm -f build/refRAPL
+	rm -f build/useModRefRapl
