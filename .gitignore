@@ -9,3 +9,5 @@ data/*
 /kernMod/result*
 
 resources/
+
+compile_commands.json

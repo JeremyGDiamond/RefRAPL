@@ -5,7 +5,7 @@ ref: dir
 	$(CC) $(CFLAGS) -o build/refRAPL refRAPL.c
 	$(CC) $(CFLAGS) -o build/useModRefRapl useModRefRAPL.c
 
-dir:
+dir: 
 	mkdir -p build
 	mkdir -p data
 

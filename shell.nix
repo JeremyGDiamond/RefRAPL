@@ -1,8 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
-  kernel = pkgs.linuxPackages_latest.kernel;
-  kernelHeaders = kernel.dev;
+  kernel = pkgs.linuxPackages.kernel;
 in
 pkgs.mkShell {
   name = "kernel-dev-env";
@@ -16,12 +15,18 @@ pkgs.mkShell {
   ];
 
   buildInputs = [
-    kernelHeaders    # Kernel headers needed for compilation
+    kernel.dev    # Kernel headers needed for compilation
     pkgs.gcc
     pkgs.binutils
     pkgs.msr-tools
     pkgs.gcc
     pkgs.linuxPackages.kernel.dev
+    
+    pkgs.bear          # to generate compile_commands.json
+    pkgs.clang-tools   # for clangd
+    pkgs.clang         # for compiling
+    pkgs.glibc         # system headers
+    
   ];
 
   shellHook = ''
@@ -48,6 +53,9 @@ pkgs.mkShell {
         -m 4G \
         -net nic -net user,hostfwd=tcp::2222-:22
     }
+
+    export CC=clang
+    export CXX=clang++
   
     echo "done"
   '';

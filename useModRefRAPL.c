@@ -1,6 +1,7 @@
 #define _GNU_SOURCE 
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -8,9 +9,23 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <errno.h>
-#include <sys/time.h>
+#include <time.h>
 #include <fcntl.h>
+
+#define PROC_PATH "/proc/rapl_ref_dump"
+
+// struct to b used in dataread
+struct raplMeasurement {
+    uint64_t ms_timestamp;
+    uint8_t errorpkg, errorpp0, errorpp1, errordram;
+    uint64_t pkg, pp0, pp1, dram;
+};
+
+uint64_t get_monotonic_raw_ns() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
 
 //pid must be global to use in sig_int_hand
 static volatile pid_t pid = 0;
@@ -19,19 +34,22 @@ void sig_int_hand(int sig){
         if (!pid){
             printf("INFO: End Samples\n");
             exit(0);
+
         }
         else{
-            // wait for child, unload mod
+            // wait for child
             usleep(1000*100);
-            int sysRet = system("rmmod msr");
 
-            if (sysRet == 0) {
-                printf("INFO: MSR module unloaded\n");
-            } 
+            // NOTE: mod can be left for now but this is how you would do it
+            // int sysRet = system("rmmod rapl_ref");
+
+            // if (sysRet == 0) {
+            //     printf("INFO: RAPL_Ref module unloaded\n");
+            // } 
             
-            else {
-                printf("ERROR: Failed to unload MSR module\n");
-            }
+            // else {
+            //     printf("ERROR: Failed to unload RAPL_Ref module\n");
+            // }
 
         }
     }
@@ -78,24 +96,10 @@ int main(int argc, char** argv) {
     }
 
 
-    // check if module is loaded, try to load once
+    // check if module is loaded
     
-    struct stat sb;
-    
-    if (!(stat("/sys/module/rapl_ref", &sb) == 0 && S_ISDIR(sb.st_mode))) {
-        printf("INFO: Rapl_Ref module not already loaded\n");
-
-        int sysRet = system("modprobe rapl_ref");
-
-        if (sysRet == 0) {
-            printf("INFO: Rapl_Ref module loaded\n");
-        } 
-        
-        else {
-            printf("ERROR: Failed to load Rapl_Ref module\n");
-            return -1;
-        }
-
+    if (access(PROC_PATH, F_OK) != 0){
+        printf("ERROR: file %s not availible, Load the rapl_ref Mod to fix this\n", PROC_PATH);
     }
     }
     
@@ -107,86 +111,88 @@ int main(int argc, char** argv) {
             return -1;
     }
 
-    // child process 1: take a sample every milisecond, write to file every 100 samples
-    // we use 5 sepserate files and buffers to keep things fast in this loop
+    // child process 1: take a sample from /proc/rapl_ref_dump every 2 seconds
+    // dump size is sizeof rapl_measurment * ring buffer size
+    // append it to filname.raw, process in userspace later
     else if (pid == 0){
-        
-        //make the fnames
-        char pkgname[2048];
-        char pp0name[2048];
-        char pp1name[2048];
-        char drmname[2048];
-        char timname[2048];
+        // define macros and set const for reads
+        char out_file[2048];
+        snprintf(out_file, 2048, "data/%s.data", argv[2]);
+        int meas_size = sizeof(struct raplMeasurement); 
+        #define STRUCT_COUNT 2048
+        #define CHUNK_SIZE (meas_size * STRUCT_COUNT)
+        #define WAIT_TIME_NS 2000*1000
 
-        snprintf(pkgname, 2048, "%s%s.data", argv[2], "pkg");
-        snprintf(pp0name, 2048, "%s%s.data", argv[2], "pp0");
-        snprintf(pp1name, 2048, "%s%s.data", argv[2], "pp1");
-        snprintf(drmname, 2048, "%s%s.data", argv[2], "drm");
-        snprintf(timname, 2048, "%s%s.data", argv[2], "tim");
-        
-        printf("INFO: child start\n");
-        // open the files and allocate data
-        char msr_file[64] = "/dev/cpu/0/msr";
-        int fdmsr = open(msr_file, O_RDONLY);
-        FILE *fpkg = fopen(pkgname, "w");
-        FILE *fpp0 = fopen(pp0name, "w");
-        FILE *fpp1 = fopen(pp1name, "w");
-        FILE *fdrm = fopen(drmname, "w");
-        FILE *fts = fopen(timname, "w");
-        
-        
-        // we assume cpu0 exists, and supports msrs there should be error handeling here. See msr-tools/rdmsr.c line 218
-        // time stamp in microseconds
-        struct timeval mts[100];
-        // RAPL mes reg are 64 bit values as can be found in the intel dev manuel page 3631
-        // msr number assumed to match dev's cpu for now TODO: make this an input arg or a lookup by cpuid
-        u_int32_t msr_pkg_num = 0x611;
-        u_int32_t msr_pp0_num = 0x639;
-        u_int32_t msr_pp1_num = 0x641;
-        u_int32_t msr_dram_num = 0x619;
-        // buffers use msr names
-        u_int64_t msr_pkg_energy_status[100], msr_pp0_energy_status[100], msr_pp1_energy_status[100], msr_dram_energy_status[100];
-        int placeholder = 0;
+        char buffer[CHUNK_SIZE];
+        int proc_fd = 0;
+        int out_fd = 0;
+        ssize_t bytes_read = 0;
         
 
         while(1){
             // printf("INFO: child takes mesurment\n");
-            // read the msrs and add them to a buffer every milisecond in a 100 sample for loop
-            // we assume the read works without error handleing. See msr-tools/rdmsr.c line 235
-            
-            
-            for(size_t i = 0; i < 100; ++i){
-                placeholder = pread(fdmsr, &msr_pkg_energy_status[i], sizeof msr_pkg_energy_status[i], msr_pkg_num);
-                placeholder = pread(fdmsr, &msr_pp0_energy_status[i], sizeof msr_pp0_energy_status[i], msr_pp0_num);
-                placeholder = pread(fdmsr, &msr_pp1_energy_status[i], sizeof msr_pp1_energy_status[i], msr_pp1_num);
-                placeholder = pread(fdmsr, &msr_dram_energy_status[i], sizeof msr_dram_energy_status[i], msr_dram_num);
-                gettimeofday(&mts[i], NULL);
-                
-                //TODO: ifdef this print
-                // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts[i].tv_sec * 1000000) + mts[i].tv_usec, msr_pkg_energy_status[i], msr_pp0_energy_status[i], 
-                //         msr_pp1_energy_status[i], msr_dram_energy_status[i]);
-                
-                usleep(1000);
+            // append to dump every 2 seconds
+            {
+            proc_fd = open(PROC_PATH, O_RDONLY);
+            if (proc_fd < 0) {
+                printf("Error: Failed to open proc file");
+                break;
             }
-            // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, msr_pkg_energy_status[99], msr_pp0_energy_status[99], 
-            //             msr_pp1_energy_status[99], msr_dram_energy_status[99]);
-            // append buffer to file
-            fwrite(msr_pkg_energy_status, sizeof(msr_pkg_energy_status[0]), 100, fpkg);
-            fwrite(msr_pp0_energy_status, sizeof(msr_pp0_energy_status[0]), 100, fpp0);
-            fwrite(msr_pp1_energy_status, sizeof(msr_pp1_energy_status[0]), 100, fpp1);
-            fwrite(msr_dram_energy_status, sizeof(msr_dram_energy_status[0]), 100, fdrm);
-            fwrite(mts, sizeof(mts[0]), 100, fts);
-        }
-        placeholder = 0;
-        
-        //close the files
-        fclose(fpkg);
-        fclose(fpp0);
-        fclose(fpp1);
-        fclose(fdrm);
-        fclose(fts);
 
-        exit(placeholder);
+            bytes_read = read(proc_fd, buffer, CHUNK_SIZE);
+            close(proc_fd);
+
+            if (bytes_read != CHUNK_SIZE) {
+                printf("Warning: expected %d bytes, got %zd\n", CHUNK_SIZE, bytes_read);
+                continue;
+            }
+
+            out_fd = open(out_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if (out_fd < 0) {
+                printf("Error: Failed to open output file");
+                break;
+            }
+
+            if (write(out_fd, buffer, bytes_read) != bytes_read) {
+                printf("Error: Failed to write to output file");
+                close(out_fd);
+                break;
+            }
+
+            close(out_fd);
+            }
+            usleep(WAIT_TIME_NS);
+            
+        }
+
+        // append dump to file one last time
+        {
+        proc_fd = open(PROC_PATH, O_RDONLY);
+        if (proc_fd < 0) {
+            printf("Error: Failed to open proc file");
+        }
+
+        bytes_read = read(proc_fd, buffer, CHUNK_SIZE);
+        close(proc_fd);
+
+        if (bytes_read != CHUNK_SIZE) {
+            printf("Warning: expected %d bytes, got %zd\n", CHUNK_SIZE, bytes_read);
+        }
+
+        out_fd = open(out_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        if (out_fd < 0) {
+            printf("Error: Failed to open output file");
+        }
+
+        if (write(out_fd, buffer, bytes_read) != bytes_read) {
+            printf("Error: Failed to write to output file");
+            close(out_fd);
+        }
+
+        close(out_fd);
+        }
+    
+        exit(0);
         
     }
 
@@ -194,40 +200,35 @@ int main(int argc, char** argv) {
     // parent process: wait 1 sec and then fork again run the target process, only user privs
     // when process undr test is done sigint to child 1
     else{
-        usleep(1000 * 1000);
+        #define PAR_WAIT_NS 1000*1000
+
+        usleep(PAR_WAIT_NS);
     
         printf("INFO: run process\n");
         
-        struct timeval t1,t2,t3,t4;
+        uint64_t t1,t2,t3,t4;
         int placeholder = 0;
         
-        // placeholder = setuid(1000);
         // take ts for pre run overhead
-        gettimeofday(&t1, NULL);
+        t1 = get_monotonic_raw_ns();
         // sleep 1 sec
-        usleep(1000*1000);
+        usleep(PAR_WAIT_NS);
         // record time stamp start
-        gettimeofday(&t2, NULL);
+        t2 = get_monotonic_raw_ns();
         placeholder = system(argv[1]);
-        gettimeofday(&t3, NULL);
+        t3 = get_monotonic_raw_ns();
         // record time stamp end
         // sleep 1 sec
-        usleep(1000*1000);
+        usleep(PAR_WAIT_NS);
         // take ts for post run overhead
-        gettimeofday(&t4, NULL);
+        t4 = get_monotonic_raw_ns();
 
-
-
-        printf("INFO: process ret: %u t1: %ld, t2: %ld, t3: %ld, t4: %ld\n", placeholder, 
-                (t1.tv_sec * 1000000) + t1.tv_usec, 
-                (t2.tv_sec * 1000000) + t2.tv_usec, 
-                (t3.tv_sec * 1000000) + t3.tv_usec, 
-                (t4.tv_sec * 1000000) + t4.tv_usec);
+        printf("INFO: process ret: %u t1: %ld, t2: %ld, t3: %ld, t4: %ld\n", placeholder, t1,t2,t3,t4);
         
         // write to file
 
         char ptsname[2048];
-        snprintf(ptsname, 2048, "%s%s.data", argv[2], "pts");
+        snprintf(ptsname, 2048, "data/%s%s.data", argv[2], "pts");
         FILE *fprocts = fopen(ptsname, "w");
         
         fwrite(&t1, sizeof(t1), 1, fprocts);
