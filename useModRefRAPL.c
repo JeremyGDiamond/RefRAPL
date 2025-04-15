@@ -128,79 +128,57 @@ int main(int argc, char** argv) {
         int out_fd = 0;
         ssize_t bytes_read = 0;
         
+        // Open and check files once, fewer syscalls and fail points per execution but more brittle
+        proc_fd = open(PROC_PATH, O_RDONLY);
+        if (proc_fd < 0) {
+            printf("Error: Failed to open proc file");
+            return -1;
+        }
+
+        out_fd = open(out_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        if (out_fd < 0) {
+            printf("Error: Failed to open output file\n");
+            return -1;;
+        }
 
         while(1){
             // printf("INFO: child takes mesurment\n");
             // append to dump every 2 seconds
             {
-            proc_fd = open(PROC_PATH, O_RDONLY);
-            if (proc_fd < 0) {
-                printf("Error: Failed to open proc file");
-                break;
-            }
-
+            
+            
             bytes_read = read(proc_fd, buffer, CHUNK_SIZE);
-            close(proc_fd);
+            
 
             if (bytes_read != CHUNK_SIZE) {
                 printf("Warning: expected %d bytes, got %zd\n", CHUNK_SIZE, bytes_read);
                 continue;
             }
 
-            out_fd = open(out_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
-            if (out_fd < 0) {
-                printf("Error: Failed to open output file");
-                break;
-            }
 
             if (write(out_fd, buffer, bytes_read) != bytes_read) {
-                printf("Error: Failed to write to output file");
+                printf("Error: Failed to write to output file \n");
                 close(out_fd);
-                break;
+                return -1;
             }
 
-            close(out_fd);
             }
             usleep(WAIT_TIME_NS);
             
         }
 
-        // append dump to file one last time
-        {
-        proc_fd = open(PROC_PATH, O_RDONLY);
-        if (proc_fd < 0) {
-            printf("Error: Failed to open proc file");
-        }
-
-        bytes_read = read(proc_fd, buffer, CHUNK_SIZE);
-        close(proc_fd);
-
-        if (bytes_read != CHUNK_SIZE) {
-            printf("Warning: expected %d bytes, got %zd\n", CHUNK_SIZE, bytes_read);
-        }
-
-        out_fd = open(out_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        if (out_fd < 0) {
-            printf("Error: Failed to open output file");
-        }
-
-        if (write(out_fd, buffer, bytes_read) != bytes_read) {
-            printf("Error: Failed to write to output file");
-            close(out_fd);
-        }
-
         close(out_fd);
-        }
+        close(proc_fd);
     
         exit(0);
         
     }
 
     
-    // parent process: wait 1 sec and then fork again run the target process, only user privs
+    // parent process: wait 2 sec and then fork again run the target process
     // when process undr test is done sigint to child 1
     else{
-        #define PAR_WAIT_NS 1000*1000
+        #define PAR_WAIT_NS 2000*1000
 
         usleep(PAR_WAIT_NS);
     
@@ -228,7 +206,7 @@ int main(int argc, char** argv) {
         // write to file
 
         char ptsname[2048];
-        snprintf(ptsname, 2048, "data/%s%s.data", argv[2], "pts");
+        snprintf(ptsname, 2048, "data/%s_%s.data", argv[2], "pts");
         FILE *fprocts = fopen(ptsname, "w");
         
         fwrite(&t1, sizeof(t1), 1, fprocts);

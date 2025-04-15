@@ -123,11 +123,11 @@ int main(int argc, char** argv) {
         char drmname[2048];
         char timname[2048];
 
-        snprintf(pkgname, 2048, "%s%s.data", argv[2], "pkg");
-        snprintf(pp0name, 2048, "%s%s.data", argv[2], "pp0");
-        snprintf(pp1name, 2048, "%s%s.data", argv[2], "pp1");
-        snprintf(drmname, 2048, "%s%s.data", argv[2], "drm");
-        snprintf(timname, 2048, "%s%s.data", argv[2], "tim");
+        snprintf(pkgname, 2048, "%s_%s.data", argv[2], "pkg");
+        snprintf(pp0name, 2048, "%s_%s.data", argv[2], "pp0");
+        snprintf(pp1name, 2048, "%s_%s.data", argv[2], "pp1");
+        snprintf(drmname, 2048, "%s_%s.data", argv[2], "drm");
+        snprintf(timname, 2048, "%s_%s.data", argv[2], "tim");
         
         printf("INFO: child start\n");
         // open the files and allocate data
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
         // write to file
 
         char ptsname[2048];
-        snprintf(ptsname, 2048, "%s%s.data", argv[2], "pts");
+        snprintf(ptsname, 2048, "%s_%s.data", argv[2], "pts");
         FILE *fprocts = fopen(ptsname, "w");
         
         fwrite(&t1, sizeof(t1), 1, fprocts);
