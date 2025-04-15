@@ -1,5 +1,5 @@
 # RefRAPL
-A Reference Implementation of C code to read the values of the RAPL MSRs for running energy use on linux. Includes a custom kernel module for low overhead.
+A Reference Implementation of C code to read the values of the RAPL MSRs for running energy use on linux. Includes a custom kernel module for low overhead. Built on a nixos system, userspace should be portable to other linux distros.
 
 # refRAPL.c 
 A pure c program that takes a file name and a program to run.
@@ -11,8 +11,11 @@ NOTE: Must be run as sudo to use the msr kernal moduel
 
 ## Data foamat
 
-### [test_name]_pkg.data, [test_name]_pp0.data, [test_name]_pp1.data, [test_name]_drm.data & [test_name]_tim.data 
-running dumps of 100 uint64_t values in binary format, first 4 are energy values, last one is a ms timestamp
+### [test_name]_pkg.data, [test_name]_pp0.data, [test_name]_pp1.data, &[test_name]_drm.data  
+running dumps of 100 uint32_t values in binary format, energy values of their respctive rapl registers,
+
+### [test_name]_tim.data
+running dumps of 100 uint64_t values in binary format. milisecond timestamps to corrolate with the energy data above
 
 ### [test_name]_pts.data 
 4 timestamps over the execustion window. All 4 are uint64_t

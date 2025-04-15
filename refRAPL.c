@@ -142,7 +142,8 @@ int main(int argc, char** argv) {
         
         // we assume cpu0 exists, and supports msrs there should be error handeling here. See msr-tools/rdmsr.c line 218
         // time stamp in microseconds
-        struct timeval mts[100];
+        u_int64_t mts[100];
+        struct timeval current_time;
         // RAPL mes reg are 64 bit values as can be found in the intel dev manuel page 3631
         // msr number assumed to match dev's cpu for now TODO: make this an input arg or a lookup by cpuid
         u_int32_t msr_pkg_num = 0x611;
@@ -165,7 +166,8 @@ int main(int argc, char** argv) {
                 placeholder = pread(fdmsr, &msr_pp0_energy_status[i], sizeof msr_pp0_energy_status[i], msr_pp0_num);
                 placeholder = pread(fdmsr, &msr_pp1_energy_status[i], sizeof msr_pp1_energy_status[i], msr_pp1_num);
                 placeholder = pread(fdmsr, &msr_dram_energy_status[i], sizeof msr_dram_energy_status[i], msr_dram_num);
-                gettimeofday(&mts[i], NULL);
+                gettimeofday(&current_time, NULL);
+                mts[i] = (current_time.tv_sec*1000) + (current_time.tv_usec/1000);
                 
                 //TODO: ifdef this print
                 // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts[i].tv_sec * 1000000) + mts[i].tv_usec, msr_pkg_energy_status[i], msr_pp0_energy_status[i], 
@@ -203,31 +205,34 @@ int main(int argc, char** argv) {
     
         printf("INFO: run process\n");
         
-        struct timeval t1,t2,t3,t4;
+        struct timeval current_time;
+        u_int64_t t1,t2,t3,t4;
         int placeholder = 0;
         
         // placeholder = setuid(1000);
         // take ts for pre run overhead
-        gettimeofday(&t1, NULL);
+        gettimeofday(&current_time, NULL);
+        t1 = (current_time.tv_sec*1000) + (current_time.tv_usec/1000);
         // sleep 1 sec
         usleep(1000*1000);
         // record time stamp start
-        gettimeofday(&t2, NULL);
+        gettimeofday(&current_time, NULL);
+        t2 = (current_time.tv_sec*1000) + (current_time.tv_usec/1000);
+        
         placeholder = system(argv[1]);
-        gettimeofday(&t3, NULL);
+        
+        gettimeofday(&current_time, NULL);
+        t3 = (current_time.tv_sec*1000) + (current_time.tv_usec/1000);
         // record time stamp end
         // sleep 1 sec
         usleep(1000*1000);
         // take ts for post run overhead
-        gettimeofday(&t4, NULL);
+        gettimeofday(&current_time, NULL);
+        t4 = (current_time.tv_sec*1000) + (current_time.tv_usec/1000);;
 
 
 
-        printf("INFO: process ret: %u t1: %ld, t2: %ld, t3: %ld, t4: %ld\n", placeholder, 
-                (t1.tv_sec * 1000000) + t1.tv_usec, 
-                (t2.tv_sec * 1000000) + t2.tv_usec, 
-                (t3.tv_sec * 1000000) + t3.tv_usec, 
-                (t4.tv_sec * 1000000) + t4.tv_usec);
+        printf("INFO: process ret: %u t1: %ld, t2: %ld, t3: %ld, t4: %ld\n", placeholder, t1, t2,t3,t4);
         
         // write to file
 
