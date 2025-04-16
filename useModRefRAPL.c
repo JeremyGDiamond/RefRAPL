@@ -17,7 +17,6 @@
 // struct to b used in dataread
 struct raplMeasurement {
     uint64_t ms_timestamp;
-    uint8_t errorpkg, errorpp0, errorpp1, errordram;
     uint64_t pkg, pp0, pp1, dram;
 };
 

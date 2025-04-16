@@ -31,7 +31,6 @@
 struct raplMeasurement
 {
     u64 ms_timestamp;
-    u8 errorpkg, errorpp0, errorpp1, errordram;
     u64 pkg, pp0, pp1, dram;
 };
 
@@ -103,6 +102,7 @@ static struct proc_ops pops1 = {
 //hr timer
 static struct hrtimer sampler;
 static ktime_t interval;
+u8 errorpkg, errorpp0, errorpp1, errordram;
 
 enum hrtimer_restart timer_callback(struct hrtimer *timer)
 {
@@ -110,10 +110,10 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer)
     measurements[mindex].ms_timestamp = ktime_to_ms(ktime_get());
     // hardcoded reg numbers for readability, see linux/arc/x86/kernel/msr.c for how to lookup
     // uses rdmsrl_safe instead of rdmsrl_safe_on_cpu assuming single cpu system
-    measurements[mindex].errorpkg = rdmsrl_safe(0x611, &measurements[mindex].pkg);
-    measurements[mindex].errorpp0 = rdmsrl_safe(0x639, &measurements[mindex].pp0);
-    measurements[mindex].errorpp1 = rdmsrl_safe(0x641, &measurements[mindex].pp1);
-    measurements[mindex].errordram = rdmsrl_safe(0x619, &measurements[mindex].dram);
+    errorpkg = rdmsrl_safe(0x611, &measurements[mindex].pkg);
+    errorpp0 = rdmsrl_safe(0x639, &measurements[mindex].pp0);
+    errorpp1 = rdmsrl_safe(0x641, &measurements[mindex].pp1);
+    errordram = rdmsrl_safe(0x619, &measurements[mindex].dram);
 
     // send message to dmseg every ms when debugging: TODO ifdef this
     // printk(KERN_INFO "timer fire: %lu pkg: %llu, %i pp0: %llu, %i pp1: %llu, %i dram: %llu, %i", 

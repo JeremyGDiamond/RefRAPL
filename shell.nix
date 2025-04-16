@@ -26,6 +26,8 @@ pkgs.mkShell {
     pkgs.clang-tools   # for clangd
     pkgs.clang         # for compiling
     pkgs.glibc         # system headers
+
+    pkgs.busybox            # for debugging binary file read
     
   ];
 
