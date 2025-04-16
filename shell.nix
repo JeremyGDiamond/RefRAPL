@@ -34,6 +34,8 @@ pkgs.mkShell {
   shellHook = ''
     echo "Setting up Qemu"
 
+    mkdir -p resources
+
     if [ ! -f resources/nix.iso ]; then
       echo "Downloading Ubuntu minimal image..."
       wget -O resources/nix.iso https://channels.nixos.org/nixos-24.11/latest-nixos-gnome-x86_64-linux.iso
