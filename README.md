@@ -78,8 +78,6 @@ NOTE: If the files were made with sudo (for example becuse you used sudo refRAPL
 
 badfib.py: a bad recursive fib python program to test cpu usage
 
-# .data to .csv COOP
-
 
 # kernMod/src/rapl_ref_mod.c
 A custom out of tree kernel module that exposes 2 proc devices. Keeps 2048 samples in a ring buffer in kernel space
