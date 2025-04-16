@@ -11,6 +11,11 @@
 #include <sys/time.h>
 #include <fcntl.h>
 
+struct raplMeasurement {
+    u_int64_t ms_timestamp;
+    u_int64_t pkg, pp0, pp1, dram;
+};
+
 //pid must be global to use in sig_int_hand
 static volatile pid_t pid = 0;
 void sig_int_hand(int sig){
@@ -117,32 +122,20 @@ int main(int argc, char** argv) {
     else if (pid == 0){
         
         //make the fnames
-        char pkgname[2048];
-        char pp0name[2048];
-        char pp1name[2048];
-        char drmname[2048];
-        char timname[2048];
+        char fname[2048];
 
-        snprintf(pkgname, 2048, "data/%s_%s.data", argv[2], "pkg");
-        snprintf(pp0name, 2048, "data/%s_%s.data", argv[2], "pp0");
-        snprintf(pp1name, 2048, "data/%s_%s.data", argv[2], "pp1");
-        snprintf(drmname, 2048, "data/%s_%s.data", argv[2], "drm");
-        snprintf(timname, 2048, "data/%s_%s.data", argv[2], "tim");
+        snprintf(fname, 2048, "data/%s.data", argv[2]);
         
         printf("INFO: child start\n");
         // open the files and allocate data
         char msr_file[64] = "/dev/cpu/0/msr";
         int fdmsr = open(msr_file, O_RDONLY);
-        FILE *fpkg = fopen(pkgname, "w");
-        FILE *fpp0 = fopen(pp0name, "w");
-        FILE *fpp1 = fopen(pp1name, "w");
-        FILE *fdrm = fopen(drmname, "w");
-        FILE *fts = fopen(timname, "w");
+        FILE *fvals = fopen(fname, "w");
         
         
         // we assume cpu0 exists, and supports msrs there should be error handeling here. See msr-tools/rdmsr.c line 218
         // time stamp in microseconds
-        u_int64_t mts[100];
+        struct raplMeasurement vals[100];
         struct timeval current_time;
         // RAPL mes reg are 64 bit values as can be found in the intel dev manuel page 3631
         // msr number assumed to match dev's cpu for now TODO: make this an input arg or a lookup by cpuid
@@ -151,7 +144,6 @@ int main(int argc, char** argv) {
         u_int32_t msr_pp1_num = 0x641;
         u_int32_t msr_dram_num = 0x619;
         // buffers use msr names
-        u_int64_t msr_pkg_energy_status[100], msr_pp0_energy_status[100], msr_pp1_energy_status[100], msr_dram_energy_status[100];
         int placeholder = 0;
         
 
@@ -162,36 +154,29 @@ int main(int argc, char** argv) {
             
             
             for(size_t i = 0; i < 100; ++i){
-                placeholder = pread(fdmsr, &msr_pkg_energy_status[i], sizeof msr_pkg_energy_status[i], msr_pkg_num);
-                placeholder = pread(fdmsr, &msr_pp0_energy_status[i], sizeof msr_pp0_energy_status[i], msr_pp0_num);
-                placeholder = pread(fdmsr, &msr_pp1_energy_status[i], sizeof msr_pp1_energy_status[i], msr_pp1_num);
-                placeholder = pread(fdmsr, &msr_dram_energy_status[i], sizeof msr_dram_energy_status[i], msr_dram_num);
+                placeholder = pread(fdmsr, &vals[i].pkg, sizeof vals[i].pkg, msr_pkg_num);
+                placeholder = pread(fdmsr, &vals[i].pp0, sizeof vals[i].pp0, msr_pp0_num);
+                placeholder = pread(fdmsr, &vals[i].pp1, sizeof vals[i].pp1, msr_pp1_num);
+                placeholder = pread(fdmsr, &vals[i].dram, sizeof vals[i].dram, msr_dram_num);
                 gettimeofday(&current_time, NULL);
-                mts[i] = (current_time.tv_sec*1000) + (current_time.tv_usec/1000);
+                vals[i].ms_timestamp = (current_time.tv_sec*1000) + (current_time.tv_usec/1000);
                 
                 //TODO: ifdef this print
-                // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts[i].tv_sec * 1000000) + mts[i].tv_usec, msr_pkg_energy_status[i], msr_pp0_energy_status[i], 
-                //         msr_pp1_energy_status[i], msr_dram_energy_status[i]);
+                // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (vals[i].ms_timestamp.tv_sec * 1000000) + vals[i].ms_timestamp.tv_usec, vals[i].pkg, vals[i].pp0, 
+                //         vals[i].pp1, vals[i].dram);
                 
                 usleep(1000);
             }
             // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, msr_pkg_energy_status[99], msr_pp0_energy_status[99], 
             //             msr_pp1_energy_status[99], msr_dram_energy_status[99]);
             // append buffer to file
-            fwrite(msr_pkg_energy_status, sizeof(msr_pkg_energy_status[0]), 100, fpkg);
-            fwrite(msr_pp0_energy_status, sizeof(msr_pp0_energy_status[0]), 100, fpp0);
-            fwrite(msr_pp1_energy_status, sizeof(msr_pp1_energy_status[0]), 100, fpp1);
-            fwrite(msr_dram_energy_status, sizeof(msr_dram_energy_status[0]), 100, fdrm);
-            fwrite(mts, sizeof(mts[0]), 100, fts);
+            fwrite(vals, sizeof(vals[0]), 100, fvals);
+            
         }
         placeholder = 0;
         
         //close the files
-        fclose(fpkg);
-        fclose(fpp0);
-        fclose(fpp1);
-        fclose(fdrm);
-        fclose(fts);
+        fclose(fvals);
 
         exit(placeholder);
         

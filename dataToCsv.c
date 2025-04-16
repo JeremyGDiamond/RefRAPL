@@ -41,57 +41,38 @@ int main(int argc, char *argv[]) {
 
     char path[512];
     
-    u_int64_t *pkg = NULL, *pp0 = NULL, *pp1 = NULL, *drm = NULL;
-    u_int64_t *tim = NULL, *pts = NULL;
-    size_t n_pkg, n_pp0, n_pp1, n_drm, n_tim, n_pts;
+    u_int64_t *val = NULL;
+    u_int64_t *pts = NULL;
+    size_t n_val, n_pts;
 
-    snprintf(path, sizeof(path), "%spkg.data", base);
-    n_pkg = read_u64_file(path, &pkg);
+    snprintf(path, sizeof(path), "%s.data", base);
+    n_val = read_u64_file(path, &val);
 
-    snprintf(path, sizeof(path), "%spp0.data", base);
-    n_pp0 = read_u64_file(path, &pp0);
-
-    snprintf(path, sizeof(path), "%spp1.data", base);
-    n_pp1 = read_u64_file(path, &pp1);
-
-    snprintf(path, sizeof(path), "%sdrm.data", base);
-    n_drm = read_u64_file(path, &drm);
-
-    snprintf(path, sizeof(path), "%stim.data", base);
-    n_tim = read_u64_file(path, &tim);
-
-    snprintf(path, sizeof(path), "%spts.data", base);
+    snprintf(path, sizeof(path), "%s_pts.data", base);
     n_pts = read_u64_file(path, &pts);
 
     if (n_pts != 4) {
         FATAL("Expected 4 pts entries, got %zu", n_pts);
     }
 
-    if (n_pkg != n_pp0 || n_pkg != n_pp1 || n_pkg != n_drm || n_pkg != n_tim) {
-        FATAL("Mismatched lengths: pkg=%zu, pp0=%zu, pp1=%zu, drm=%zu, tim=%zu",
-              n_pkg, n_pp0, n_pp1, n_drm, n_tim);
-    }
-
-    snprintf(path, sizeof(path), "%soutput.csv", base);
+    snprintf(path, sizeof(path), "%s_output.csv", base);
     FILE *csv = fopen(path, "w");
     if (!csv) FATAL("Failed to open CSV for writing: %s", path);
 
-    fprintf(csv, "t1,%llu\nt2,%llu\nt3,%llu\nt4,%llun",
+    fprintf(csv, "t1,%llu\nt2,%llu\nt3,%llu\nt4,%llu\n",
             (unsigned long long)pts[0], (unsigned long long)pts[1],
             (unsigned long long)pts[2], (unsigned long long)pts[3]);
 
-    fprintf(csv, "index,timestamp_ms,pkg_energy,pp0_energy,pp1_energy,drm_energy\n");
+    fprintf(csv, "timestamp_ms,pkg_energy,pp0_energy,pp1_energy,drm_energy\n");
 
-    for (size_t i = 0; i < n_tim; ++i) {
-        fprintf(csv, "%zu,%llu,%lu,%lu,%lu,%lu\n",
-                i, (unsigned long long)tim[i],
-                pkg[i], pp0[i], pp1[i], drm[i]);
+    for (size_t i = 0; i < n_val; i += 5) {
+        fprintf(csv, "%lu,%lu,%lu,%lu,%lu\n",
+                val[i], val[i+1], val[i+2], val[i+3], val[i+4]);
     }
 
     fclose(csv);
     printf("Wrote CSV: %s\n", path);
 
-    free(pkg); free(pp0); free(pp1); free(drm);
-    free(tim); free(pts);
+    free(val); free(pts);
     return 0;
 }

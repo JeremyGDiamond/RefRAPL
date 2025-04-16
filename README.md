@@ -6,48 +6,73 @@ A pure c program that takes a file name and a program to run.
 
 NOTE: Must be run as sudo to use the msr kernal moduel
 
+## ex 
+``` sudo ./build/useModRefRapl "python testPrograms/badfib.py 30" a ``` 
+
+Will run a test and name the output files starting with a
+
 ## build
 ```make``` 
 
-## Data foamat
+## Data format
 
-### [test_name]_pkg.data, [test_name]_pp0.data, [test_name]_pp1.data, &[test_name]_drm.data  
-running dumps of 100 uint32_t values in binary format, energy values of their respctive rapl registers,
+### [test_name].data  
+A running append of the 100 samples of the rapl registers with a timestamp collected every milisecond. Saved in raw binary format. The struct looks like
 
-### [test_name]_tim.data
-running dumps of 100 uint64_t values in binary format. milisecond timestamps to corrolate with the energy data above
+```
+struct raplMeasurement {
+    u_int64_t ms_timestamp;
+    u_int64_t pkg, pp0, pp1, dram;
+};
+```
 
 ### [test_name]_pts.data 
-4 timestamps over the execustion window. All 4 are uint64_t
-```uint64_t t1,t2,t3,t4;```
+4 timestamps over the execustion window. All 4 are u_int64_t
+```u_int64_t t1,t2,t3,t4;```
 
 # useModRefRAPL.c
 Run the same way as refRAPL.c but uses the /proc/rapl_ref_dump interface for low overhead. Can be run with normal user privs but the module must already be loaded
 
 ## ex 
-``` ./build/useModRefRapl "python testPrograms/badfib.py 30" $(date -I'seconds') ``` 
+``` ./build/useModRefRapl "python testPrograms/badfib.py 30" a ``` 
 
-Will run a test and name the output files in iso 8601 format to the second
+Will run a test and name the output files starting with a
 
 ## build
 ```make```
 
 ## Data format
 ### [test_name].data 
-A running append of the 2048 samples of the rapl buffer collected every 2 seconds in the kernel. Saved in raw binary format. The buffer is a ring and there should be up to 48 redundent entries per 2 second dump. the struct looks like
+A running append of the 2048 samples of the rapl buffer collected every 2 seconds in the kernel. Saved in raw binary format. The buffer is a ring and there should be up to 48 redundent entries per 2 second dump. The struct looks like
 
 ```
 struct raplMeasurement {
-    uint64_t ms_timestamp;
-    uint8_t errorpkg, errorpp0, errorpp1, errordram;
-    uint64_t pkg, pp0, pp1, dram;
+    u_int64_t ms_timestamp;
+    u_int64_t pkg, pp0, pp1, dram;
 };
 ```
 
 ### [test_name]_pts.data 
 
-4 timestamps over the execustion window. All 4 are uint64_t
-```uint64_t t1,t2,t3,t4;```
+4 timestamps over the execustion window. All 4 are u_int64_t
+```u_int64_t t1,t2,t3,t4;```
+
+# dataToCSV.c
+
+Takes a testname and makes a testname_output.csv from testname.data and testname_pts.data
+
+## ex
+
+For a test in the data folder named a
+
+``` ./build/dataToCsv data/a ```
+
+NOTE: If the files were made with sudo (for example becuse you used sudo refRAPL.c) you may get and error unless you use sudo again.
+
+## build
+
+``` make```
+
 
 # testPrograms
 

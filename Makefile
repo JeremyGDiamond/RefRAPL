@@ -4,8 +4,8 @@ CFLAGS = -Wall -Wextra -std=c11
 ref: dir
 	$(CC) $(CFLAGS) -o build/refRAPL refRAPL.c
 	$(CC) $(CFLAGS) -o build/useModRefRapl useModRefRAPL.c
-	$(CC) $(CFLAGS) -o build/refDataToCsv refDataToCsv.c
-
+	$(CC) $(CFLAGS) -o build/dataToCsv dataToCsv.c
+	
 dir: 
 	mkdir -p build
 	mkdir -p data
@@ -13,4 +13,4 @@ dir:
 clean:
 	rm -f build/refRAPL
 	rm -f build/useModRefRapl
-	rm -f build/refDataToCsv
+	rm -f build/dataToCsv

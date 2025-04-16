@@ -1,7 +1,6 @@
 #define _GNU_SOURCE 
 
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -16,14 +15,14 @@
 
 // struct to b used in dataread
 struct raplMeasurement {
-    uint64_t ms_timestamp;
-    uint64_t pkg, pp0, pp1, dram;
+    u_int64_t ms_timestamp;
+    u_int64_t pkg, pp0, pp1, dram;
 };
 
-uint64_t get_monotonic_raw_ns() {
+u_int64_t get_monotonic_raw_ns() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-    return (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+    return (u_int64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 }
 
 //pid must be global to use in sig_int_hand
@@ -183,7 +182,7 @@ int main(int argc, char** argv) {
     
         printf("INFO: run process\n");
         
-        uint64_t t1,t2,t3,t4;
+        u_int64_t t1,t2,t3,t4;
         int placeholder = 0;
         
         // take ts for pre run overhead
