@@ -13,3 +13,5 @@ resources/
 compile_commands.json
 .cache/
 .cache/*
+
+testPrograms/piTimes.csv

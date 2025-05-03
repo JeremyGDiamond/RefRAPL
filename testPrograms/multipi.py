@@ -5,7 +5,7 @@ import math
 import requests
 import csv
 
-filename = "piTimes.csv"
+filename = "testPrograms/piTimes.csv"
 
 def timeFuntionDec(func):
     def timeFunc():
@@ -122,15 +122,16 @@ def network():
         data = response.json()
         # print("DATA:",data)
         pi = data["cotents"]["result"]
+        print("network Value of Pi: ",pi)
     except requests.RequestException as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred in network(): {e}")
 
-    print("network Value of Pi: ",pi)
+    
 
 # reads from file pi.txt
 @timeFuntionDec
 def readFromFile():
-    f = open("pi.txt", 'r')
+    f = open("testPrograms/pi.txt", 'r')
 
     pi = float(f.read())
 
