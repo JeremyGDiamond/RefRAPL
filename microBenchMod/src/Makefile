@@ -1,5 +1,5 @@
 # Define the module name
-obj-m := rapl_ref_mod.o
+obj-m := micro_bench.o
 
 # Kernel source directory (will be set by the Nix derivation)
 KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build

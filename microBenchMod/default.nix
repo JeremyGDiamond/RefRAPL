@@ -15,7 +15,7 @@ pkgs.stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out/lib/modules/${pkgs.linuxPackages.kernel.modDirVersion}/extra
-    cp rapl_ref_mod.ko $out/lib/modules/${pkgs.linuxPackages.kernel.modDirVersion}/extra/
+    cp micro_bench.ko $out/lib/modules/${pkgs.linuxPackages.kernel.modDirVersion}/extra/
   '';
 
   meta = {
