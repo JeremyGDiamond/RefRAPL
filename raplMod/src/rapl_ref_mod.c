@@ -75,7 +75,8 @@ static ssize_t custom_read(struct file* file, char __user* user_buffer, size_t c
     if(cpRes != 0){
         printk(KERN_INFO "print of meas failed");
     }
-    *offset = mess_length; return mess_length;
+    *offset = mess_length; 
+    return mess_length;
 }
 
 static struct proc_ops pops = {

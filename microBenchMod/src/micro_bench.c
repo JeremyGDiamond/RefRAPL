@@ -23,32 +23,58 @@ MODULE_DESCRIPTION("micro_bench_mod");
 MODULE_LICENSE("GPL");
 
 
-static struct proc_dir_entry* proc_entry;
-static ssize_t custom_read(struct file* file, char __user* user_buffer, size_t count, loff_t* offset)
+#define REPS 1000
+
+static struct proc_dir_entry* micro_bench_proc_dir;
+
+
+static struct proc_dir_entry* rdmsr0_entry;
+static ssize_t rdmsr0_read(struct file* file, char __user* user_buffer, size_t count, loff_t* offset)
 {
-    char greeting[] = "Hello world!\n";
-    int greeting_length = strlen(greeting);
+    char buffer[100];
+    int buffer_length = sizeof(buffer);
+    int string_buff_len = 0;
+    u64 start = 0;
+    u64 end = 0;
+    long cpRes = 0;
+
+    u64 rdmsr_val;
+    u8 error;
 
     printk(KERN_INFO "micro bench rdmsr");
     
     if (*offset > 0)
         return 0; 
+
+    start = ktime_to_ms(ktime_get());
+    for (int i = 0; i < REPS; ++i){
+       error = rdmsrl_safe(0x611, &rdmsr_val);
+    }  
+    end = ktime_to_ms(ktime_get());
+
+    snprintf(buffer, buffer_length, "%lld,%lld", (long long)start, (long long)end);
+    string_buff_len = strlen(buffer);
+
+
+    cpRes = copy_to_user(user_buffer, buffer, string_buff_len);
+    if(cpRes != 0){
+        printk(KERN_INFO "print of meas failed");
+    }
     
-    copy_to_user(user_buffer, greeting, greeting_length);
+    *offset = string_buff_len;
     
-    *offset = greeting_length;
-    
-    return greeting_length;
+    return string_buff_len;
 }
 
-static struct proc_ops pops = {
-    .proc_read = custom_read
+static struct proc_ops rdmsr0_pops = {
+    .proc_read = rdmsr0_read
 };
 
 
 // Custom init and exit methods
 static int __init custom_init(void) {
-    proc_entry = proc_create("rapl_ref", 0666, NULL, &pops);
+    micro_bench_proc_dir = proc_mkdir("micro_bench", NULL);
+    rdmsr0_entry = proc_create("rdmsr0", 0666, micro_bench_proc_dir, &rdmsr0_pops);
     
     printk(KERN_INFO "micro_bench_mod loaded.");
     return 0;
@@ -57,7 +83,10 @@ static int __init custom_init(void) {
 static void __exit custom_exit(void) {
     printk(KERN_INFO "micro_bench_mod exit");
     
-    proc_remove(proc_entry);
+    proc_remove(rdmsr0_entry);
+    
+    // must be last
+    proc_remove(micro_bench_proc_dir);
     
 }
 
