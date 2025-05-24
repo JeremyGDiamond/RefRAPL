@@ -23,7 +23,7 @@ MODULE_DESCRIPTION("micro_bench_mod");
 MODULE_LICENSE("GPL");
 
 
-#define REPS 1000
+#define REPS 10000000
 
 static struct proc_dir_entry* micro_bench_proc_dir;
 
