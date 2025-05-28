@@ -2,7 +2,7 @@
 
 nix-build
 
-sudo insmod result/lib/modules/6.6.80/extra/micro_bench.ko
+sudo insmod "result/lib/modules/$(uname -r)/extra/micro_bench.ko"
 
 # ls /proc/micro_bench/
 
