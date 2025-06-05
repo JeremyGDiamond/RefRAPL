@@ -162,6 +162,7 @@ int main(int argc, char** argv) {
             }
 
             }
+            printf("DEBUG: expected %d bytes, got %zd\n", CHUNK_SIZE, bytes_read);
             usleep(WAIT_TIME_NS);
             
         }
