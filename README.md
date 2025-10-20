@@ -43,7 +43,7 @@ Will run a test and name the output files starting with a
 
 ## Data format
 ### [test_name].data 
-A running append of the 2048 samples of the rapl buffer collected every 2 seconds in the kernel. Saved in raw binary format. The buffer is a ring and there should be up to 48 redundent entries per 2 second dump. The struct looks like
+A running append of the 128 samples of the rapl buffer collected every 0.1 seconds in the kernel. Saved in raw binary format. The buffer is a ring and there should be up to 48 redundent entries per 2 second dump. The struct looks like
 
 ```
 struct raplMeasurement {

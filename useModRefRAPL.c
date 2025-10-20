@@ -12,6 +12,9 @@
 #include <fcntl.h>
 
 #define PROC_PATH "/proc/rapl_ref_dump"
+#define STRUCT_COUNT 128
+#define CHUNK_SIZE (meas_size * STRUCT_COUNT)
+#define WAIT_TIME_NS 100*1000
 
 // struct to b used in dataread
 struct raplMeasurement {
@@ -117,10 +120,6 @@ int main(int argc, char** argv) {
         char out_file[2048];
         snprintf(out_file, 2048, "data/%s.data", argv[2]);
         int meas_size = sizeof(struct raplMeasurement); 
-        #define STRUCT_COUNT 2048
-        #define CHUNK_SIZE (meas_size * STRUCT_COUNT)
-        #define WAIT_TIME_NS 2000*1000
-
         char buffer[CHUNK_SIZE];
         int proc_fd = 0;
         int out_fd = 0;

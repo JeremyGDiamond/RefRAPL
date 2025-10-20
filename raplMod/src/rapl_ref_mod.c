@@ -21,7 +21,7 @@
 //timer wait def
 #define MS_TO_WAIT 1
 //size of output arr
-#define MEAS_NUM 2048 //can be made config if needed
+#define MEAS_NUM 128 //can be made config if needed
 #define MEAS_MASK MEAS_NUM - 1
 //buffer witten to the proc system
 #define OUT_BUFF_SIZE 87 * (MEAS_NUM + 1)

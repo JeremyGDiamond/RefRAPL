@@ -38,7 +38,7 @@ pkgs.mkShell {
 
     if [ ! -f resources/nix.iso ]; then
       echo "Downloading nixos minimal image..."
-      wget -O resources/nix.iso https://channels.nixos.org/nixos-24.11/latest-nixos-gnome-x86_64-linux.iso
+      wget -O resources/nix.iso https://channels.nixos.org/nixos-25.05/latest-nixos-graphical-x86_64-linux.iso
     fi
 
     # create qemuimage if it does not already exist
