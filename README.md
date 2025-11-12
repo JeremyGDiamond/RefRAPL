@@ -1,6 +1,10 @@
 # RefRAPL
 A Reference Implementation of C code to read the values of the RAPL MSRs for running energy use on linux. Includes a custom kernel module for low overhead. Built on a nixos system, userspace should be portable to other linux distros.
 
+## branch trace_calls
+add a copy of rapl_ref_mod that traces all the calls and their execution times, places them in a dict and exposes it via a proc file
+add a copy of the msr kernel mod that traces all the calls to read msr and their execution times, places them in a dict and exposes it via a proc file
+
 # refRAPL.c 
 A pure c program that takes a file name and a program to run.
 
