@@ -92,21 +92,21 @@ int main(int argc, char** argv) {
     
     struct stat sb;
     
-    if (!(stat("/sys/module/msr", &sb) == 0 && S_ISDIR(sb.st_mode))) {
-        printf("INFO: MSR module not already loaded\n");
-
-        int sysRet = system("modprobe msr");
-
-        if (sysRet == 0) {
-            printf("INFO: MSR module loaded, On successful runs it will be unloaded\n");
-        } 
-        
-        else {
-            printf("ERROR: Failed to load MSR module\n");
-            return -1;
-        }
-
-    }
+    // if (!(stat("/sys/module/msr", &sb) == 0 && S_ISDIR(sb.st_mode))) {
+    //     printf("INFO: MSR module not already loaded\n");
+    //
+    //     int sysRet = system("modprobe msr");
+    //
+    //     if (sysRet == 0) {
+    //         printf("INFO: MSR module loaded, On successful runs it will be unloaded\n");
+    //     } 
+    //
+    //     else {
+    //         printf("ERROR: Failed to load MSR module\n");
+    //         return -1;
+    //     }
+    //
+    // }
     }
     
     // fork process

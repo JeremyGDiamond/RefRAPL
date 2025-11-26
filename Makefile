@@ -6,6 +6,8 @@ ref: dir
 	$(CC) $(CFLAGS) -o build/useModRefRapl useModRefRAPL.c
 	$(CC) $(CFLAGS) -o build/dataToCsv dataToCsv.c
 	$(CC) $(CFLAGS) -o build/micro_syscall_overhead micro_syscall_overhead.c
+	$(CC) $(CFLAGS) -o build/useModTimeRapl useModTimeRapl.c
+	$(CC) $(CFLAGS) -o build/useModTimeMsr useModTimeMsr.c
 	
 dir: 
 	mkdir -p build
@@ -16,3 +18,5 @@ clean:
 	rm -f build/useModRefRapl
 	rm -f build/dataToCsv
 	rm -f build/micro_syscall_overhead
+	rm -f build/useModTimeRapl
+	rm -f build/useModTimeMsr
