@@ -88,6 +88,10 @@ static struct proc_dir_entry* proc_entry1;
 static ssize_t custom_read1(struct file* file, char __user* user_buffer, size_t count, loff_t* offset)
 {
     // TODO time this func
+     
+    u64 start = ktime_to_ns(ktime_get());
+    times_called += 1;
+    
     printk(KERN_INFO "bin dump meas");
 
     long cpRes = copy_to_user(user_buffer, measurements, MES_SIZE);
@@ -95,6 +99,8 @@ static ssize_t custom_read1(struct file* file, char __user* user_buffer, size_t 
         printk(KERN_INFO "dump of meas failed");
     }
     *offset = MES_SIZE; 
+    
+    micro_total += ((ktime_to_ns(ktime_get())) - start)/1000;
     return MES_SIZE;
 }
 
