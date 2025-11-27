@@ -444,6 +444,7 @@ static void __exit msr_exit(void)
 {
 	cpuhp_remove_state(cpuhp_msr_state);
 	class_unregister(&msr_class);
+  proc_remove(proc_entry);
 	__unregister_chrdev(MSR_MAJOR, 0, NR_CPUS, "cpu/msr");
 }
 module_exit(msr_exit)

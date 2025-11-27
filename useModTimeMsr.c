@@ -27,15 +27,7 @@ void sig_int_hand(int sig){
         else{
             // wait for child, unload mod
             usleep(1000*100);
-            int sysRet = system("rmmod msr");
-
-            if (sysRet == 0) {
-                printf("INFO: MSR module unloaded\n");
-            } 
-            
-            else {
-                printf("ERROR: Failed to unload MSR module\n");
-            }
+            printf("INFO: Test done, check the timers and unload the mod"); 
 
         }
     }
@@ -90,23 +82,13 @@ int main(int argc, char** argv) {
 
     // check if module is loaded, try to load once
     
-    struct stat sb;
     
-     if (!(stat("/sys/module/msr", &sb) == 0 && S_ISDIR(sb.st_mode))) {
-         printf("INFO: MSR module not already loaded\n");
-    
-         int sysRet = system("modprobe msr");
-    
-         if (sysRet == 0) {
-             printf("INFO: MSR module loaded, On successful runs it will be unloaded\n");
-         } 
-    
-         else {
-             printf("ERROR: Failed to load MSR module\n");
-             return -1;
-         }
-    
-     }
+        if (access("/proc/timer_msr", F_OK) != 0) {
+            printf("INFO: MSR module not already loaded\n");
+        
+          return -1;
+        
+        }
     }
     
     // fork process
