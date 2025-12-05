@@ -21,7 +21,7 @@ pkgs.mkShell {
     pkgs.msr-tools
     pkgs.gcc
     pkgs.linuxPackages.kernel.dev
-    pkgs.linuxKernel.packages.linux_6_17.perf
+    pkgs.linuxKernel.packages.linux_6_12.perf
     
     pkgs.bear          # to generate compile_commands.json
     pkgs.clang-tools   # for clangd
