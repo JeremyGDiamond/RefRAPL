@@ -111,10 +111,16 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer)
     measurements[mindex].ms_timestamp = ktime_to_ms(ktime_get());
     // hardcoded reg numbers for readability, see linux/arc/x86/kernel/msr.c for how to lookup
     // uses rdmsrl_safe instead of rdmsrl_safe_on_cpu assuming single cpu system
-    errorpkg = rdmsrl_safe(0x611, &measurements[mindex].pkg);
-    errorpp0 = rdmsrl_safe(0x639, &measurements[mindex].pp0);
-    errorpp1 = rdmsrl_safe(0x641, &measurements[mindex].pp1);
-    errordram = rdmsrl_safe(0x619, &measurements[mindex].dram);
+    // errorpkg = rdmsrl_safe(0x611, &measurements[mindex].pkg);
+    // errorpp0 = rdmsrl_safe(0x639, &measurements[mindex].pp0);
+    // errorpp1 = rdmsrl_safe(0x641, &measurements[mindex].pp1);
+    // errordram = rdmsrl_safe(0x619, &measurements[mindex].dram);
+
+    //trying direct asm macors
+    measurements[mindex].pkg = native_read_msr(0x611);
+    measurements[mindex].pp0 = native_read_msr(0x639);
+    measurements[mindex].pp1 = native_read_msr(0x641);
+    measurements[mindex].dram = native_read_msr(0x619);
 
     // send message to dmseg every ms when debugging: TODO ifdef this
     // printk(KERN_INFO "timer fire: %lu pkg: %llu, %i pp0: %llu, %i pp1: %llu, %i dram: %llu, %i", 
