@@ -27,7 +27,7 @@ void sig_int_hand(int sig){
         else{
             // wait for child, unload mod
             usleep(1000*100);
-            printf("INFO: Test done, check the timers and unload the mod"); 
+            printf("INFO: Test done, check the timers and unload the mod\n"); 
 
         }
     }
