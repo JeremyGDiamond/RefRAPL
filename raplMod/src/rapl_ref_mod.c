@@ -142,8 +142,7 @@ static int __init custom_init(void) {
     proc_entry1 = proc_create("rapl_ref_dump", 0666, NULL, &pops1);
 
     interval = ktime_set(0, 1e6); // 1ms = 1,000,000 ns
-    hrtimer_init(&sampler, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-    sampler.function = timer_callback;
+    hrtimer_setup(&sampler, timer_callback, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
     hrtimer_start(&sampler, interval, HRTIMER_MODE_REL);
     
     printk(KERN_INFO "rapl_ref_mod loaded.");

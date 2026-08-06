@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
                 // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (vals[i].ms_timestamp.tv_sec * 1000000) + vals[i].ms_timestamp.tv_usec, vals[i].pkg, vals[i].pp0, 
                 //         vals[i].pp1, vals[i].dram);
                 
-                usleep(1000);
+                usleep(10);
             }
             // printf("INFO: child print last meas, %ld: %lu, %lu, %lu, %lu\n", (mts.tv_sec * 1000000) + mts.tv_usec, msr_pkg_energy_status[99], msr_pp0_energy_status[99], 
             //             msr_pp1_energy_status[99], msr_dram_energy_status[99]);
